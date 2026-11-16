@@ -1,0 +1,1 @@
+@extends('layouts.admin') @section('content')<h1 class="text-2xl font-bold">Bài học — {{ $section->title }}</h1>@foreach($section->lessons as $lesson)<p class="py-2"><a href="{{ route('instructor.lessons.show',$lesson) }}">{{ $lesson->title }}</a></p>@endforeach @endsection

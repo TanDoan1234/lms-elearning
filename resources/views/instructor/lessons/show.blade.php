@@ -1,0 +1,1 @@
+@extends('layouts.admin') @section('content')<x-card :title="$lesson->title"><p>{{ $lesson->content }}</p>@if($lesson->video_url)<a href="{{ $lesson->video_url }}">Xem video YouTube</a>@endif</x-card>@endsection
