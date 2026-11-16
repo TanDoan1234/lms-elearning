@@ -1,0 +1,1 @@
+<x-app-layout><x-slot name="header"><p class="text-sm font-semibold text-primary-600">Học tập</p><h1 class="page-title mt-2">Khóa học của tôi</h1><p class="page-subtitle">Tất cả chương trình bạn đã đăng ký.</p></x-slot><div class="page-container py-10">@include('student._course-list', ['showTabs' => true])</div></x-app-layout>

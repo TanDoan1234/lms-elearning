@@ -1,0 +1,1 @@
+<x-app-layout><x-slot name="header"><p class="text-sm font-semibold text-primary-600">Trang chủ / Khóa học</p><h1 class="page-title mt-2">Khám phá khóa học</h1><p class="page-subtitle">Tìm chương trình phù hợp với mục tiêu học tập của bạn.</p></x-slot><div class="page-container py-8"><livewire:course.course-filter/></div></x-app-layout>
