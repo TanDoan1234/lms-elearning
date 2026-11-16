@@ -1,0 +1,1 @@
+<x-app-layout><x-slot name="header"><h1 class="text-xl font-semibold">Bảng điều khiển học viên</h1></x-slot><div class="mx-auto max-w-7xl p-6"><x-card>Tiếp tục hành trình học tập của bạn.</x-card></div></x-app-layout>
