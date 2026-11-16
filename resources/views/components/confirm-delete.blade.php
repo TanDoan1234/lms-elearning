@@ -1,0 +1,1 @@
+@props(['action','label'=>'Xóa','message'=>'Bạn có chắc muốn xóa mục này?'])<form method="POST" action="{{ $action }}" class="inline" onsubmit="return confirm(@js($message))">@csrf @method('DELETE')<x-button variant="danger">{{ $label }}</x-button></form>
