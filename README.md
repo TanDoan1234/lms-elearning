@@ -1,19 +1,19 @@
 # LMS E-Learning HUIT
 
-Hệ thống quản lý học tập và thi trắc nghiệm trực tuyến cho học phần Lập trình mã nguồn mở. Ứng dụng hỗ trợ biên soạn khóa học, ghi danh/thanh toán, theo dõi tiến độ, thi trực tuyến và cấp chứng chỉ PDF có mã xác thực công khai.
+An online learning management and quiz system built for the "Lập trình mã nguồn mở" (Open Source Programming) course at HUIT. The application supports course authoring, enrollment and payment, progress tracking, online exams, and PDF certificates with a publicly verifiable code.
 
-## Chức năng theo vai trò
+## Features by role
 
-- **Khách:** xem khóa học đã xuất bản, bài preview và xác thực chứng chỉ.
-- **Học viên:** đăng ký, thanh toán, học bằng Fetch API, thi Livewire, xem kết quả và tải chứng chỉ.
-- **Giảng viên:** CRUD nội dung, ngân hàng câu hỏi, import/export Excel, tạo đề, xem/xuất điểm.
-- **Quản trị viên:** quản lý người dùng/danh mục, duyệt khóa học, xác nhận chuyển khoản và xem dashboard.
+- **Guest:** browse published courses, preview lessons, and verify certificates.
+- **Student:** register, pay, learn with the Fetch API (progress tracking), take Livewire exams, review results, and download certificates.
+- **Instructor:** CRUD for course content, question bank, Excel import/export, exam builder, view/export scores.
+- **Admin:** manage users and categories, approve courses, confirm bank transfers, and view dashboards.
 
-## Công nghệ và yêu cầu
+## Tech stack and requirements
 
-PHP 8.2+ (môi trường phát triển PHP 8.5), Laravel 12, Breeze 2, Livewire 3, MySQL 8+, Tailwind CSS 3/Vite 7, DomPDF 3, Laravel Excel 4 và PHPUnit 11. Cần Composer 2, Node.js 20+ và các extension PHP Laravel/MySQL (`pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `xml`, `zip`).
+PHP 8.2+ (the development machine runs PHP 8.5), Laravel 12, Breeze 2 (Blade), Livewire 3, MySQL 8+, Tailwind CSS 3 / Vite 7, DomPDF 3 (`barryvdh/laravel-dompdf`), Laravel Excel 4 (`maatwebsite/excel`), and PHPUnit 11. Requires Composer 2, Node.js 20+, and the usual Laravel/MySQL PHP extensions (`pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `xml`, `zip`).
 
-## Cài đặt
+## Setup
 
 ```bash
 git clone <repository-url> lms-elearning
@@ -23,7 +23,7 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Tạo CSDL MySQL `lms_elearning`, cập nhật `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` trong `.env`, rồi chạy:
+Create a MySQL database named `lms_elearning`, update `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in `.env`, then run:
 
 ```bash
 php artisan migrate --seed
@@ -33,64 +33,67 @@ npm run build
 php artisan serve
 ```
 
-Ứng dụng mặc định ở `http://127.0.0.1:8000`. Khi demo production đặt `APP_DEBUG=false`.
+The app runs at `http://127.0.0.1:8000` by default. Set `APP_DEBUG=false` for a production-style demo.
 
-## Tài khoản demo
+## Demo accounts
 
-Mật khẩu chung: `password`.
+Shared password: `password`.
 
-| Vai trò | Email |
+| Role | Email |
 |---|---|
-| Quản trị | `admin@lms.test` |
-| Giảng viên | `gv1@lms.test` (ThS. Nguyễn Văn An), `gv2@lms.test` (TS. Trần Thị Bình), `gv3@lms.test` (ThS. Lê Hoàng Cường) |
-| Học viên | `hv1@lms.test` (Nguyễn Minh Khoa) … `hv60@lms.test` — hv1 có sẵn luồng demo: 2 khóa có chứng chỉ, 1 khóa đã học xong chờ thi cuối khóa, 2 khóa đang học, 1 đơn chuyển khoản chờ duyệt |
+| Admin | `admin@lms.test` |
+| Instructor | `gv1@lms.test` (ThS. Nguyễn Văn An), `gv2@lms.test` (TS. Trần Thị Bình), `gv3@lms.test` (ThS. Lê Hoàng Cường) |
+| Student | `hv1@lms.test` (Nguyễn Minh Khoa) … `hv60@lms.test` |
 
-`hv1@lms.test` có một khóa hoàn thành và chứng chỉ PDF, một khóa đang học và một đơn chuyển khoản chờ duyệt. Dữ liệu giảng viên có đề thi/lượt làm để xem kết quả và xuất điểm.
+`hv1@lms.test` has a prepared demo flow: 2 courses with certificates, 1 course finished but the final exam not yet passed, 2 courses in progress, and 1 pending bank-transfer order. Instructor accounts have exams and attempts so you can view results and export scores.
 
-Thẻ mô phỏng: `4242 4242 4242 4242` thành công; `4000 0000 0000 0002` bị từ chối và đơn vẫn chờ để thử lại/chuyển khoản.
+Mock payment: card `4242 4242 4242 4242` succeeds; `4000 0000 0000 0002` is declined and the order stays pending so you can retry or pay by bank transfer. Bank transfer orders are confirmed by an admin.
 
-## Kiểm thử
+## Testing
 
 ```bash
 php artisan test
 php artisan test tests/Feature/E2E
 ```
 
-Test dùng SQLite `:memory:` theo `phpunit.xml`. Có thể dựng lại demo bằng `php artisan migrate:fresh --seed` (lệnh xóa dữ liệu hiện có).
+The suite currently has 63 passing tests. Tests use SQLite `:memory:` as configured in `phpunit.xml`. To rebuild the demo data, run `php artisan migrate:fresh --seed` (this deletes existing data).
 
-## Cấu trúc thư mục
+## Directory structure
 
 ```text
-app/Http/Controllers/       controller theo vai trò
-app/Http/Requests/          Form Request tiếng Việt
-app/Livewire/               bộ lọc và màn hình thi
-app/Models, app/Policies/   Eloquent và phân quyền
-app/Rules, app/Services/    custom rule và nghiệp vụ
+app/Http/Controllers/       controllers grouped by role
+app/Http/Requests/          Form Requests (Vietnamese messages)
+app/Livewire/               course filter and exam-taking screen
+app/Models, app/Policies/   Eloquent models and authorization
+app/Rules, app/Services/    custom rules and business logic
 app/Imports, app/Exports/   Laravel Excel
-database/                   migration, factory, seeder
-resources/views/            Blade layout/component/module
-routes/                     route tách theo module
-tests/Feature/E2E/          kiểm thử tích hợp đầu-cuối
+database/                   migrations, factories, seeders
+resources/views/            Blade layouts, components, modules
+routes/                     routes split by module
+tests/Feature/E2E/          end-to-end integration tests
 ```
 
-## Ánh xạ R1–R15
+## Course rules (R1–R15) to code
 
-| Rule | File tiêu biểu |
+| Rule | Representative files |
 |---|---|
 | R1 MVC | `routes/*.php`, `app/Http/Controllers`, `app/Models`, `resources/views` |
-| R2 Migration | `database/migrations/2026_01_01_000100_create_lms_tables.php` và migration bổ sung |
-| R3 Quan hệ/fillable | `app/Models/Course.php`, `User.php`, `Exam.php` |
+| R2 Migrations | `database/migrations/2026_01_01_000100_create_lms_tables.php` and follow-up migrations |
+| R3 Relationships/fillable | `app/Models/Course.php`, `User.php`, `Exam.php` |
 | R4 Factory/Seeder | `database/factories`, `database/seeders/DatabaseSeeder.php` |
-| R5 N+1 | controller danh sách dùng `with`, `withCount`, `paginate` |
+| R5 N+1 | list controllers use `with`, `withCount`, `paginate` |
 | R6 Resource/group | `routes/admin.php`, `routes/instructor.php` |
 | R7 Blade | `resources/views/layouts`, `resources/views/components` |
-| R8 Form | form Blade dùng CSRF, method spoofing, old/error |
+| R8 Forms | Blade forms use CSRF, method spoofing, old input/errors |
 | R9 Validation | `app/Http/Requests`, `app/Rules/YoutubeUrl.php`, `AtLeastOneCorrectOption.php` |
-| R10 Middleware | `CheckRole.php`, alias trong `bootstrap/app.php` |
-| R11 Auth | `routes/auth.php`, controller Breeze |
-| R12 Authorization | `AppServiceProvider.php`, `app/Policies`, middleware `can:` |
-| R13 An toàn | escaped Blade `{{ }}`, binding, validation, `.env.example` |
+| R10 Middleware | `CheckRole.php`, alias in `bootstrap/app.php` |
+| R11 Auth | `routes/auth.php`, Breeze controllers |
+| R12 Authorization | `AppServiceProvider.php`, `app/Policies`, `can:` middleware |
+| R13 Safety | escaped Blade `{{ }}`, query binding, validation, `.env.example` |
 | R14 OOP/service | `PaymentGatewayInterface`, `ExamGradingService`, `CertificateService` |
 | R15 Fetch/JSON | `resources/js/learn.js`, `LearnController::complete` |
 
-Xem báo cáo đầy đủ tại [docs/BAO_CAO.md](docs/BAO_CAO.md).
+## Notes
+
+- The `slide/` folder (course slides) is git-ignored and not part of the repository.
+- The full project report (in Vietnamese, for the lecturer) is at [docs/BAO_CAO.md](docs/BAO_CAO.md). Screenshots are in `docs/images/`.

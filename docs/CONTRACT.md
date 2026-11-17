@@ -1,21 +1,21 @@
-# Hợp đồng tích hợp LMS E-Learning
+# LMS E-Learning Integration Contract
 
-Tài liệu này là hợp đồng bắt buộc cho W2–W5. Không đổi tên route, tham số binding, bảng, khóa ngoại, quan hệ công khai hoặc flash key nếu chưa phối hợp với tất cả worker.
+This document is the binding contract for W2–W5. Do not rename routes, binding parameters, tables, foreign keys, public relationships, or flash keys without coordinating with all workers.
 
-## Quy ước chung
+## General conventions
 
-- Laravel 12, MVC, Eloquent; không SQL/PDO trong controller. Dùng eager loading, `withCount()` và `paginate()`.
-- Chỉ sinh URL bằng `route('name', [...])`; không hard-code đường dẫn. Blade dùng `{{ }}` cho dữ liệu người dùng.
-- Thông báo và validation bằng tiếng Việt. Flash key duy nhất: `success` và `error`; layout đã render `<x-flash />`.
-- Form Request: `app/Http/Requests/{Admin,Instructor,Student}`. Policy: `app/Policies`. Nghiệp vụ: `app/Services`.
-- Controller luôn `authorize()`; route dùng `can:` khi phù hợp; Blade dùng `@can`. Middleware `auth` luôn đứng trước `role:`.
-- Resource route dùng chuẩn 7 action. Upload dùng disk `public`, validation `mimes`/`max`; JSON/fetch trả mã HTTP đúng.
-- Route model binding: `{course}` dùng `Course::getRouteKeyName()` = `slug`; `{certificate}` có thể binding theo `code`, route verify dùng `{code}`; các model khác dùng id.
-- W2–W5 chỉ sửa file sở hữu. Shared model/migration/component thay đổi phải được coordinator duyệt.
+- Laravel 12, MVC, Eloquent; no SQL/PDO in controllers. Use eager loading, `withCount()`, and `paginate()`.
+- Generate URLs only with `route('name', [...])`; never hard-code paths. Blade uses `{{ }}` for user data.
+- Messages and validation are in Vietnamese. The only flash keys are `success` and `error`; the layout already renders `<x-flash />`.
+- Form Requests: `app/Http/Requests/{Admin,Instructor,Student}`. Policies: `app/Policies`. Business logic: `app/Services`.
+- Controllers always call `authorize()`; routes use `can:` where appropriate; Blade uses `@can`. The `auth` middleware always comes before `role:`.
+- Resource routes use the standard 7 actions. Uploads use the `public` disk with `mimes`/`max` validation; JSON/fetch endpoints return correct HTTP status codes.
+- Route model binding: `{course}` uses `Course::getRouteKeyName()` = `slug`; `{certificate}` may bind by `code`, and the verify route uses `{code}`; other models use id.
+- W2–W5 may only edit the files they own. Changes to shared models/migrations/components must be approved by the coordinator.
 
 ## Route registry
 
-| Worker | Tên route | Method | URI |
+| Worker | Route name | Method | URI |
 |---|---|---|---|
 | W2 | `admin.dashboard` | GET | `/admin/dashboard` |
 | W2 | `admin.users.index/create/store/show/edit/update/destroy` | resource | `/admin/users` |
@@ -60,31 +60,31 @@ Tài liệu này là hợp đồng bắt buộc cho W2–W5. Không đổi tên 
 | W5 | `certificates.download` | GET | `/certificates/{certificate}/download` |
 | W5 | `certificates.verify` | GET (public) | `/certificates/verify/{code}` |
 
-Nhóm route: admin dùng `prefix('admin')->name('admin.')->middleware(['auth','role:admin'])`; instructor dùng `prefix('instructor')->name('instructor.')->middleware(['auth','role:instructor,admin'])`. Student dashboard/learning/order cần `auth` (và policy/enrollment); catalog, home, certificate verify là public. Exam taking cần `auth`, policy và throttle phù hợp.
+Route groups: admin uses `prefix('admin')->name('admin.')->middleware(['auth','role:admin'])`; instructor uses `prefix('instructor')->name('instructor.')->middleware(['auth','role:instructor,admin'])`. Student dashboard/learning/orders require `auth` (and policy/enrollment); catalog, home, and certificate verify are public. Exam taking requires `auth`, a policy, and appropriate throttling.
 
-## Sở hữu file
+## File ownership
 
-- W1/shared: migrations, `app/Models`, factories, seeders, `bootstrap/app.php`, provider, layouts, partials, components, locale, tài liệu này.
-- W2: `routes/admin.php`, phần course/section/lesson của `routes/instructor.php`, Controllers `Admin/*`, `Instructor/Course*`, `Section*`, `Lesson*`, request/policy liên quan.
-- W3: `routes/student.php`, Controllers `Student/*`, Livewire filter, `Services/Payment/*`, `EnrollmentService`, `ProgressService`, view catalog/checkout/learn/student.
-- W4: phần question/exam của `routes/instructor.php`, Controllers `Instructor/Question*`, `Exam*`, `Imports`, `Exports`, rule và view question/exam.
-- W5: `routes/exam.php`, `app/Livewire/Exam`, `ExamGradingService`, `CertificateService`, view exam/attempt/certificate.
+- W1/shared: migrations, `app/Models`, factories, seeders, `bootstrap/app.php`, providers, layouts, partials, components, locale, this document.
+- W2: `routes/admin.php`, the course/section/lesson part of `routes/instructor.php`, Controllers `Admin/*`, `Instructor/Course*`, `Section*`, `Lesson*`, and related requests/policies.
+- W3: `routes/student.php`, Controllers `Student/*`, Livewire filter, `Services/Payment/*`, `EnrollmentService`, `ProgressService`, catalog/checkout/learn/student views.
+- W4: the question/exam part of `routes/instructor.php`, Controllers `Instructor/Question*`, `Exam*`, `Imports`, `Exports`, rules, and question/exam views.
+- W5: `routes/exam.php`, `app/Livewire/Exam`, `ExamGradingService`, `CertificateService`, exam/attempt/certificate views.
 
 ## Model/relationship cheat sheet
 
 - `User`: `coursesTaught`, `enrolledCourses` (pivot status, price_paid, enrolled_at, completed_at + timestamps), `completedLessons` (completed_at), `orders`, `examAttempts`, `certificates`; `isAdmin/isInstructor/isStudent`.
-- `Category`: `courses`. `Course`: `category`, `instructor`, ordered `sections`, `lessons`, `students`, `exams`, `finalExam` (hasOne where final), `questions`, `orders`, `certificates`; scopes `published/free/paid`, accessor `is_free`, binding slug.
+- `Category`: `courses`. `Course`: `category`, `instructor`, ordered `sections`, `lessons`, `students`, `exams`, `finalExam` (hasOne where final), `questions`, `orders`, `certificates`; scopes `published/free/paid`, accessor `is_free`, slug binding.
 - `Section`: `course`, ordered `lessons`. `Lesson`: `section`, `completedByUsers`.
 - `Order`: `user`, `course`. `Question`: `course`, `creator`, `options`, `exams`. `Option`: `question`.
-- `Exam`: `course`, `questions` (pivot points/position), `attempts`. `ExamAttempt`: `exam`, `user`, `answers`. `AttemptAnswer`: `attempt`, `question`, cast `selected_option_ids` array.
-- `Certificate`: `user`, `course`, binding code.
+- `Exam`: `course`, `questions` (pivot points/position), `attempts`. `ExamAttempt`: `exam`, `user`, `answers`. `AttemptAnswer`: `attempt`, `question`, `selected_option_ids` cast to array.
+- `Certificate`: `user`, `course`, code binding.
 
 ## Shared Blade components
 
-- `<x-alert type="success|error|warning|info">`; `<x-flash>` (không props).
+- `<x-alert type="success|error|warning|info">`; `<x-flash>` (no props).
 - `<x-input name label? type? value?>`; `<x-textarea name label? rows?>`; `<x-select name label?>`.
 - `<x-button variant="primary|secondary|danger" type="submit">`.
 - `<x-card title?>`; `<x-badge variant="green|red|yellow|blue|gray">`.
 - `<x-progress-bar value max=100 label?>`; `<x-empty-state title? description?>`.
-- `<x-confirm-delete action label? message?>` tự thêm CSRF, DELETE và confirm.
-- Layout: `<x-app-layout>` có `header`, `@stack('styles')`, `@stack('scripts')`, Livewire assets; `layouts.admin` dành cho trang quản trị/instructor dùng `@section('content')`.
+- `<x-confirm-delete action label? message?>` adds CSRF, DELETE, and a confirm prompt automatically.
+- Layouts: `<x-app-layout>` provides `header`, `@stack('styles')`, `@stack('scripts')`, and Livewire assets; `layouts.admin` is for admin/instructor pages and uses `@section('content')`.

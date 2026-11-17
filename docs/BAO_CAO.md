@@ -653,6 +653,20 @@ Kết quả chạy thật được cập nhật ở lần nghiệm thu cuối b�
 | TC-28 | `manual_builder_keeps_order_and_points` | giữ thứ tự/trọng số | Pass |
 | TC-29 | `admin_can_toggle_course_and_confirm_order` | duyệt khóa/xác nhận đơn | Pass |
 | TC-30 | `instructor_cannot_edit_another_instructors_course` | ownership course | Pass |
+| TC-31 | `admin_can_manage_categories_and_users` | admin quản lý danh mục và người dùng | Pass |
+| TC-32 | `non_admin_is_forbidden_and_admin_cannot_delete_self` | chặn non-admin, admin không tự xóa mình | Pass |
+| TC-33 | `instructor_can_build_course_sections_and_lessons` | giảng viên dựng khóa/chương/bài | Pass |
+| TC-34 | `lesson_upload_is_deleted_with_lesson` | xóa file upload khi xóa bài học | Pass |
+| TC-35 | `another_instructor_cannot_access_question_bank` | ownership ngân hàng câu hỏi | Pass |
+| TC-36 | `owner_can_render_question_and_exam_pages` | chủ khóa mở trang câu hỏi/đề thi | Pass |
+| TC-37 | `draft_course_cannot_be_enrolled_and_paid_course_is_never_activated_for_free` | không ghi danh khóa nháp, không kích hoạt khóa trả phí miễn phí | Pass |
+| TC-38 | `guest_private_lesson_redirects_to_login_and_unenrolled_student_is_forbidden` | khách về login, học viên chưa ghi danh bị 403 | Pass |
+| TC-39 | `completed_course_with_certificate_shows_view_certificate_button_opening_pdf_inline` | nút "Xem chứng chỉ" mở PDF inline | Pass |
+| TC-40 | `finished_lessons_without_passed_final_exam_prompts_final_exam` | học xong nhưng chưa đạt thi cuối thì gợi ý thi | Pass |
+| TC-41 | `progress_service_returns_first_uncompleted_lesson` | xác định bài học tiếp theo | Pass |
+| TC-42 | `it_builds_84_days_and_combines_activity_sources` | heatmap 12 tuần gộp bài học và lượt thi | Pass |
+
+Ngoài 42 ca trên, 21 test còn lại là bộ test mặc định của Laravel Breeze (đăng ký, đăng nhập, quên/đặt lại mật khẩu, xác minh email, hồ sơ cá nhân) và 2 test mẫu của Laravel; tất cả đều pass.
 
 ### 6.2 Kết quả chạy nghiệm thu
 
@@ -662,18 +676,18 @@ Lệnh thực hiện:
 php artisan test
 ```
 
-Kết quả thực tế sau khi bổ sung E2E và sửa chữ ký Laravel Excel 4:
+Kết quả thực tế ở lần nghiệm thu cuối (17/11/2026):
 
 ```text
-Tests: 59 passed (254 assertions)
-Duration: 1.94s
+Tests: 63 passed (276 assertions)
+Duration: 2.14s
 ```
 
 Các ca timing được kiểm chứng chính xác bởi `OnlineExamTest::test_saving_after_expiry_is_rejected_and_attempt_is_finalized` và `OnlineExamTest::test_max_attempts_is_enforced`; vì vậy không tạo bản sao `ExamTimingTest` chỉ đổi tên. Việc mở attempt hết hạn cũng nằm trong ca đầu: Livewire mount gọi finalize và redirect đến result.
 
 ## 7. Kết quả giao diện
 
-Các vị trí ảnh dưới đây dành cho ảnh chụp khi chạy ứng dụng với dữ liệu seed; mô tả là tiêu chí cần thể hiện, không phải ảnh giả.
+Ảnh dưới đây được chụp tự động bằng Chrome headless từ ứng dụng chạy thật với dữ liệu seed (đăng nhập bằng các tài khoản demo); ảnh bổ sung nằm trong `docs/images/extra/`.
 
 ![Trang chủ và danh mục khóa học](images/home-catalog.png)
 
@@ -681,7 +695,7 @@ Các vị trí ảnh dưới đây dành cho ảnh chụp khi chạy ứng dụn
 
 ![Dashboard học viên và tiến độ](images/student-dashboard.png)
 
-*Khóa đang học, thanh tiến độ, CTA tiếp tục và đơn hàng.*
+*Hồ sơ học viên, dải "Tiếp tục học" với bài kế tiếp, tab Đang học/Đã hoàn thành, trạng thái bài học/bài kiểm tra/thi cuối khóa, nút "Xem chứng chỉ" và heatmap hoạt động 12 tuần.*
 
 ![Màn hình làm bài thi](images/exam-taking.png)
 
@@ -689,11 +703,11 @@ Các vị trí ảnh dưới đây dành cho ảnh chụp khi chạy ứng dụn
 
 ![Dashboard giảng viên](images/instructor-dashboard.png)
 
-*Khóa học, ngân hàng câu hỏi, đề thi và kết quả.*
+*Chỉ số lượt thi, tỷ lệ đạt, điểm trung bình, biểu đồ ghi danh 6 tháng, ghi danh gần đây và bảng khóa học.*
 
 ![Dashboard quản trị](images/admin-dashboard.png)
 
-*Số liệu tổng quan, khóa chờ duyệt và đơn chuyển khoản.*
+*8 chỉ số tổng quan, khung "Cần xử lý", heatmap hoạt động, biểu đồ ghi danh và doanh thu 6 tháng, khóa học nhiều học viên nhất và đơn hàng mới.*
 
 ![Chứng chỉ PDF](images/certificate.png)
 
@@ -731,7 +745,7 @@ Các vị trí ảnh dưới đây dành cho ảnh chụp khi chạy ứng dụn
 
 ### 8.1 Kết quả đạt được
 
-Đồ án hoàn thiện một LMS đa vai trò với 99 route ứng dụng. Luồng học viên đi từ đăng ký, ghi danh, thanh toán, học, thi đến chứng chỉ; giảng viên quản lý nội dung/câu hỏi/đề/điểm; admin quản lý dữ liệu và xác nhận chuyển khoản. Kiến trúc tuân theo MVC, Eloquent, migration, Form Request, middleware, policy và service. Bộ test gồm 59 test/254 assertion đều pass.
+Đồ án hoàn thiện một LMS đa vai trò với 99 route ứng dụng. Luồng học viên đi từ đăng ký, ghi danh, thanh toán, học, thi đến chứng chỉ; giảng viên quản lý nội dung/câu hỏi/đề/điểm; admin quản lý dữ liệu và xác nhận chuyển khoản. Kiến trúc tuân theo MVC, Eloquent, migration, Form Request, middleware, policy và service. Bộ test gồm 63 test/276 assertion đều pass.
 
 ### 8.2 Hạn chế
 
@@ -740,7 +754,6 @@ Các vị trí ảnh dưới đây dành cho ảnh chụp khi chạy ứng dụn
 - Thi trực tuyến chưa có proctoring, phát hiện đổi tab hay nhận diện khuôn mặt.
 - Chưa có email/notification queue cho xác nhận đơn và cấp chứng chỉ.
 - Dashboard mới tập trung thống kê nghiệp vụ cơ bản, chưa có learning analytics sâu.
-- Ảnh báo cáo đang là placeholder đường dẫn, cần chụp từ bản demo cuối trước khi in báo cáo.
 
 ### 8.3 Hướng phát triển
 

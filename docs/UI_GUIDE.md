@@ -1,22 +1,22 @@
 # UI Guide — LMS E-Learning
 
-## Tinh thần thiết kế
+## Design principles
 
-Giao diện mang tinh thần website đại học và sản phẩm giáo dục biên tập kỹ: điềm tĩnh, rõ ràng, nhiều khoảng trắng và dùng ảnh thật để tạo ngữ cảnh. Hệ thống tránh gradient trang trí, glassmorphism, card màu rực và hiệu ứng nổi; phân cấp đến từ typography, nhịp khoảng cách và đường viền trung tính.
+The interface follows the spirit of a university website and a carefully edited education product: calm, clear, generous whitespace, and real photos for context. The system avoids decorative gradients, glassmorphism, bright colored cards, and floating effects; hierarchy comes from typography, spacing rhythm, and neutral borders.
 
-## Nền tảng
+## Foundations
 
-- Font: **Be Vietnam Pro** (400/500/600/700), tải qua Bunny Fonts; hỗ trợ dấu tiếng Việt tốt.
-- Màu chính HUIT Blue: `primary-600 #2563EB`; nút/link chính `primary-700 #1D4ED8`; hover `primary-800 #1E40AF`; nền nhạt `primary-50 #EFF6FF`.
-- Thành công/tiến độ: Emerald `#10B981`; cảnh báo: Amber `#F59E0B`; lỗi: Red `#DC2626`.
-- Chữ: Slate 950 cho tiêu đề, Slate 700 cho nội dung, Slate 500 cho phụ chú. Nền trang Slate 50.
-- Khoảng cách theo nhịp 4px; nội dung trang dùng `page-container`; card chủ yếu `rounded-lg`, viền Slate 200 và không shadow.
-- Ảnh khóa học dùng thumbnail thật; nếu thiếu thì ánh xạ ảnh theo danh mục từ `public/images/lms/`, không lặp lại một illustration cho mọi khóa học.
-- Hover chỉ đổi màu chữ, gạch chân hoặc màu viền nhẹ; không translate, scale hay đổi nền rực.
-- Sidebar quản trị, sidebar bài học và footer luôn dùng nền trắng/Slate 50 với viền Slate 200; không dùng mảng nền đen hoặc navy.
-- Focus luôn có vòng Primary Blue 2px; không dùng màu là tín hiệu duy nhất. Hỗ trợ `prefers-reduced-motion`.
+- Font: **Be Vietnam Pro** (400/500/600/700), loaded via Bunny Fonts; handles Vietnamese diacritics well.
+- Primary color HUIT Blue (the Tailwind blue scale, exposed as `primary` in `tailwind.config.js`): `primary-600 #2563EB`; main buttons/links `primary-700 #1D4ED8`; hover `primary-800 #1E40AF`; light background `primary-50 #EFF6FF`.
+- Success/progress: Emerald `#10B981`; warning: Amber `#F59E0B`; error: Red `#DC2626`.
+- Text: Slate 950 for headings, Slate 700 for body, Slate 500 for captions. Page background Slate 50.
+- Spacing on a 4px rhythm; page content uses `page-container`; cards are mostly `rounded-lg` with a Slate 200 border and no shadow.
+- Course images use real thumbnails; if missing, map a photo by category from `public/images/lms/`, never repeating one illustration for every course.
+- Hover only changes text color, underline, or a subtle border color; no translate, scale, or vivid background change.
+- The admin sidebar, lesson sidebar, and footer always use a white/Slate 50 background with a Slate 200 border; no black or navy surfaces.
+- Focus always shows a 2px Primary Blue ring; color is never the only signal. `prefers-reduced-motion` is supported.
 
-## Thành phần dùng chung
+## Shared components
 
 ```blade
 <x-alert type="success">Đã lưu khóa học.</x-alert>
@@ -33,59 +33,59 @@ Giao diện mang tinh thần website đại học và sản phẩm giáo dục b
 <x-confirm-delete :action="route('...')" message="Bạn chắc chắn muốn xóa?" />
 ```
 
-Trạng thái chuẩn: `published/paid/Đạt` → green; `draft` → gray; `pending` → yellow; `failed/Không đạt` → red; thông tin → blue. Nút có `size=sm|md|lg`, `variant=primary|secondary|danger|ghost`, `loading=true`. Với Livewire có thể thêm `wire:loading.attr="disabled"` và nội dung tải riêng.
+Standard states: `published/paid/Đạt` (passed) → green; `draft` → gray; `pending` → yellow; `failed/Không đạt` (not passed) → red; informational → blue. Buttons accept `size=sm|md|lg`, `variant=primary|secondary|danger|ghost`, and `loading=true`. With Livewire you can add `wire:loading.attr="disabled"` and a dedicated loading label.
 
-Bảng chuẩn:
+Standard table:
 
 ```blade
 <div class="table-shell"><table class="data-table">...</table></div>
 ```
 
-## Mẫu trang
+## Page patterns
 
-- **Danh sách:** page title + mô tả; hành động chính bên phải; filter trong card; bảng/cuộn ngang hoặc grid; phân trang cuối trang; empty state có hướng dẫn và CTA.
-- **Biểu mẫu:** rộng tối đa `max-w-3xl`; nhóm trường theo card; label luôn hiển thị; help text trước lỗi; thanh hành động cuối form.
-- **Chi tiết:** header có breadcrumb, title, badge trạng thái và nhóm hành động; thân trang chia 2/3 + 1/3 trên desktop, một cột trên mobile.
-- **Dashboard:** hàng thống kê trắng, đường viền mảnh, số liệu rõ; danh sách hoạt động gần đây ở dưới. Không dùng bento nhiều màu.
-- **Học tập:** sidebar chương/bài thu gọn trên mobile; nội dung chính tối đa chiều rộng đọc; tiến độ luôn thấy; CTA tiếp tục rõ ràng.
-- **Thi:** câu hỏi dùng `text-lg sm:text-xl leading-8`; timer `sticky top-20 rounded-xl border bg-white p-4 tabular-nums`; navigator `grid grid-cols-5 gap-2`; trạng thái đã trả lời/đánh dấu có cả màu và icon; nút nộp luôn mở hộp xác nhận.
+- **List:** page title + description; primary action on the right; filters inside a card; table (horizontally scrollable) or grid; pagination at the bottom; empty state with guidance and a CTA.
+- **Form:** max width `max-w-3xl`; fields grouped in cards; labels always visible; help text before errors; action bar at the end of the form.
+- **Detail:** header with breadcrumb, title, status badge, and action group; body split 2/3 + 1/3 on desktop, single column on mobile.
+- **Dashboard:** a row of white stat cards with thin borders and clear figures; recent activity list below. No multicolor bento layouts.
+- **Learning:** section/lesson sidebar collapses on mobile; main content capped at a readable width; progress always visible; a clear continue CTA.
+- **Exam:** questions use `text-lg sm:text-xl leading-8`; timer `sticky top-20 rounded-xl border bg-white p-4 tabular-nums`; navigator `grid grid-cols-5 gap-2`; answered/flagged states use both color and an icon; the submit button always opens a confirmation dialog.
 
-## Responsive và accessibility
+## Responsive and accessibility
 
-Thiết kế từ mobile trước. Menu công khai chuyển sang hamburger dưới `md`; sidebar quản trị thành drawer dưới `lg`; bảng có `overflow-x-auto`. Input phải có label liên kết bằng `for/id`; icon-only button có `aria-label`; flash dùng `role=alert`; progress có ARIA value. Vùng bấm tối thiểu khoảng 40×40px.
+Mobile-first design. The public menu becomes a hamburger below `md`; the admin sidebar becomes a drawer below `lg`; tables use `overflow-x-auto`. Inputs must have labels linked via `for/id`; icon-only buttons have `aria-label`; flash messages use `role=alert`; progress bars expose ARIA values. Minimum tap target is about 40×40px.
 
 ## Do / Don't
 
-- Do: một CTA chính mỗi vùng; câu chữ tiếng Việt ngắn; dùng `route()` và `Route::has()`; hiển thị empty/loading/error; giữ tương phản cao.
-- Do: dùng thumbnail ảnh thật tỉ lệ nhất quán và `object-cover`; ghi nguồn ảnh trong `public/images/CREDITS.md`.
-- Don't: ghép nhiều màu rực, gradient trang trí, glassmorphism, shadow đậm, card hover nổi/scale; không dùng placeholder thay label.
-- Don't: hard-code URL, thêm thư viện icon nặng, hoặc sao chép logo/illustration từ sản phẩm khác.
+- Do: one primary CTA per area; short Vietnamese copy; use `route()` and `Route::has()`; show empty/loading/error states; keep contrast high.
+- Do: use real photo thumbnails with a consistent aspect ratio and `object-cover`; record image sources in `public/images/CREDITS.md`.
+- Don't: mix many vivid colors, use decorative gradients, glassmorphism, heavy shadows, or cards that lift/scale on hover; do not use placeholders instead of labels.
+- Don't: hard-code URLs, add heavy icon libraries, or copy logos/illustrations from other products.
 
-## Nguồn cảm hứng
+## Inspiration sources
 
-Các nguồn dưới đây chỉ định hướng xu hướng, không sao chép shot hoặc asset:
+The sources below only guide trends; do not copy shots or assets:
 
-- [Mobbin web patterns](https://mobbin.com/browse/web/apps): phân cấp nội dung và luồng tác vụ quen thuộc.
-- [Land-book](https://land-book.com/): bố cục editorial, typography rõ và ảnh thật có chủ đích.
-- [Behance — education website search](https://www.behance.net/search/projects?search=university%20education%20website): pattern website giáo dục và đại học.
-- [Tailwind UI](https://tailwindui.com/components): pattern responsive navigation, form, table và focus state.
-- [Flowbite](https://flowbite.com/docs/components/alerts/): cách tổ chức trạng thái alert/badge/modal dễ hiểu và accessible.
-- Từ khóa tham khảo bổ sung: `university website`, `editorial SaaS`, `quiz app`, `exam timer UI`, `certificate design`.
+- [Mobbin web patterns](https://mobbin.com/browse/web/apps): familiar content hierarchy and task flows.
+- [Land-book](https://land-book.com/): editorial layouts, clear typography, and purposeful real photos.
+- [Behance — education website search](https://www.behance.net/search/projects?search=university%20education%20website): education and university website patterns.
+- [Tailwind UI](https://tailwindui.com/components): patterns for responsive navigation, forms, tables, and focus states.
+- [Flowbite](https://flowbite.com/docs/components/alerts/): an easy-to-follow, accessible way to organize alert/badge/modal states.
+- Additional search keywords: `university website`, `editorial SaaS`, `quiz app`, `exam timer UI`, `certificate design`.
 
-### Tham khảo Behance
+### Behance references
 
-Chỉ kế thừa cách tổ chức thông tin và luồng tác vụ; không sao chép nhận diện, hình minh họa hay bố cục theo từng pixel:
+Only inherit the information organization and task flows; do not copy branding, illustrations, or pixel-level layouts:
 
-- [VK Education LMS redesign](https://www.behance.net/gallery/219868305/redizajn-LMS-sistemy-VK-Education): dải “Tiếp tục học”, tab khóa đang học/đã hoàn thành, trạng thái chi tiết trong từng chương trình và cột việc sắp tới.
-- [Empat School LMS Dashboard](https://www.behance.net/gallery/253375055/Empat-School-LMS-Dashboard-for-a-Real-EdTech-Program): một CTA tiếp tục rõ nhất, hồ sơ học viên, heatmap hoạt động 12 tuần và khối chứng chỉ.
-- [Synaptix LMS Dashboard](https://www.behance.net/gallery/241141177/Synaptix-LMS-Dashboard-UI-UX-Design-Case-Study): phân cấp bằng typography, nhãn uppercase nhỏ và bảng dữ liệu thoáng.
-- [Trenning V2 SaaS LMS](https://www.behance.net/gallery/202271645/Trenning-V2-SaaS-Learning-Management-System-(LMS)): cấu trúc dashboard theo tác vụ và các hàng dữ liệu có nhịp dọc rộng.
+- [VK Education LMS redesign](https://www.behance.net/gallery/219868305/redizajn-LMS-sistemy-VK-Education): a "Tiếp tục học" (Continue learning) strip, in-progress/completed course tabs, detailed status within each program, and an upcoming-tasks column.
+- [Empat School LMS Dashboard](https://www.behance.net/gallery/253375055/Empat-School-LMS-Dashboard-for-a-Real-EdTech-Program): one clearest continue CTA, a student profile, a 12-week activity heatmap, and a certificates block.
+- [Synaptix LMS Dashboard](https://www.behance.net/gallery/241141177/Synaptix-LMS-Dashboard-UI-UX-Design-Case-Study): hierarchy through typography, small uppercase labels, and airy data tables.
+- [Trenning V2 SaaS LMS](https://www.behance.net/gallery/202271645/Trenning-V2-SaaS-Learning-Management-System-(LMS)): task-oriented dashboard structure and data rows with generous vertical rhythm.
 
-## Nguồn ảnh
+## Image credits
 
-Toàn bộ ảnh lưu cục bộ dưới `public/images/lms/`, nén dưới 250 KB và dùng theo [Pexels License](https://www.pexels.com/license/). Danh sách đầy đủ file, tác giả và URL nguồn nằm tại [`public/images/CREDITS.md`](../public/images/CREDITS.md): Charlotte May (hero sinh viên), Yan Krukau (auth), Digital Buggu, Rodrigo Santos, Syirwan Ainu và Daniil Komov (bộ ảnh web/code luân phiên theo mã khóa học), Sergei Starostin (server/database và network), cottonbro studio (security), Lukas Blazek (data), fauxels (software process/team).
+All images are stored locally under `public/images/lms/`, compressed to under 250 KB, and used under the [Pexels License](https://www.pexels.com/license/). The full list of files, authors, and source URLs is in [`public/images/CREDITS.md`](../public/images/CREDITS.md): Charlotte May (student hero), Yan Krukau (auth), Digital Buggu, Rodrigo Santos, Syirwan Ainu, and Daniil Komov (web/code photo set rotated by course id), Sergei Starostin (server/database and network), cottonbro studio (security), Lukas Blazek (data), fauxels (software process/team).
 
-## Preview tĩnh
+## Static preview
 
 ```blade
 <section class="page-container py-8">
