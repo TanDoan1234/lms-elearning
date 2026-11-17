@@ -2,7 +2,7 @@
 @php
     $weeks = collect($days)->chunk(7)->values();
     $colors = ['bg-slate-100', 'bg-primary-100', 'bg-primary-300', 'bg-primary-500', 'bg-primary-700'];
-    // Nhãn tháng: đặt ở tuần đầu tiên của mỗi tháng, bỏ nhãn nếu cách nhãn trước < 3 cột để không chồng chữ.
+    // Month labels: placed on the first week of each month, skipped when closer than 3 columns to the previous label to avoid overlap.
     $monthLabels = [];
     $lastLabelAt = -10;
     $previousMonth = null;

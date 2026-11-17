@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seeder sinh ~24 chứng chỉ PDF bằng dompdf trong cùng một tiến trình => cần nhiều bộ nhớ hơn mặc định 128M.
+        // The seeder renders ~24 certificate PDFs with dompdf in one process, which needs more than the default 128M.
         ini_set('memory_limit', '1G');
         Storage::disk('public')->deleteDirectory('certificates');
         fake()->unique(true);
@@ -131,7 +131,7 @@ class DatabaseSeeder extends Seeder
         })->all();
     }
 
-    /** Video YouTube thật, đúng chủ đề (đã kiểm tra cho phép nhúng qua oEmbed). */
+    /** Real, on-topic YouTube videos (embeddability verified via oEmbed). */
     private function videoUrlFor(string $courseTitle, int $index): string
     {
         $pools = [
@@ -153,7 +153,7 @@ class DatabaseSeeder extends Seeder
         return 'https://www.youtube.com/watch?v='.$pool[$index % count($pool)];
     }
 
-    /** Luồng demo cố định cho hv1: 2 khóa có chứng chỉ, 1 khóa học xong nhưng chưa đạt thi cuối, 1 khóa đang học, 1 đơn chờ duyệt. */
+    /** Fixed demo flow for hv1: 2 certified courses, 1 finished course without a passed final exam, courses in progress and 1 pending order. */
     private function seedDemoStudent(User $student, \Illuminate\Support\Collection $courseData): void
     {
         $published = $courseData->filter(fn ($d) => $d['course']->status === 'published')->values();
@@ -188,7 +188,7 @@ class DatabaseSeeder extends Seeder
         Order::create(['user_id' => $student->id, 'course_id' => $pending['course']->id, 'code' => 'ORD-DEMO-HV1', 'amount' => $pending['course']->price, 'method' => 'bank_transfer', 'status' => 'pending']);
     }
 
-    /** Sinh hoạt động học tập trong 6 tháng: ghi danh tăng dần, đơn hàng, tiến độ, lượt thi và chứng chỉ. */
+    /** Generates 6 months of activity: growing enrollments, orders, lesson progress, exam attempts and certificates. */
     private function seedActivity(\Illuminate\Support\Collection $students, \Illuminate\Support\Collection $courseData, User $demoStudent): void
     {
         $orderSeq = 1;
@@ -197,7 +197,7 @@ class DatabaseSeeder extends Seeder
             $course = $data['course'];
             $popularity = [24, 21, 18, 16, 14, 13, 11, 10, 9, 8][$ci] ?? 8;
             foreach ($students->shuffle()->take($popularity) as $student) {
-                // Ngày ghi danh lệch về gần hiện tại => biểu đồ tăng trưởng theo tháng.
+                // Skew enrollment dates towards today so the monthly chart shows growth.
                 $enrolledAt = now()->subDays((int) round(175 * (1 - sqrt(mt_rand() / mt_getrandmax()))))->setTime(mt_rand(7, 22), mt_rand(0, 59));
                 $paid = (float) $course->price > 0;
                 if ($paid) {
@@ -253,7 +253,7 @@ class DatabaseSeeder extends Seeder
         }
     }
 
-    /** Lượt thi đã nộp với đáp án chi tiết khớp điểm số (điểm theo %). */
+    /** Creates a submitted attempt whose per-question answers match the given score (percentage). */
     private function createAttempt(Exam $exam, User $student, int $score, $at): ExamAttempt
     {
         $questions = $exam->questions()->with('options')->orderBy('exam_question.position')->get();

@@ -25,7 +25,7 @@ class CertificateController extends Controller
         Gate::authorize('view', $certificate);
         abort_unless($certificate->file_path && Storage::disk('public')->exists($certificate->file_path), 404);
 
-        // ?inline=1: mở PDF ngay trên trình duyệt (nút "Xem chứng chỉ"), mặc định tải về.
+        // ?inline=1 opens the PDF in the browser (the "Xem chứng chỉ" button); default is a download.
         $disposition = request()->boolean('inline') ? 'inline' : 'attachment';
 
         return Storage::disk('public')->response($certificate->file_path, $certificate->code.'.pdf', [], $disposition);

@@ -29,7 +29,7 @@ class Lesson extends Model
         return $this->belongsToMany(User::class)->withPivot('completed_at');
     }
 
-    /** URL nhúng YouTube (/embed/{id}) — YouTube chặn nhúng link dạng watch?v=. */
+    /** YouTube embed URL (/embed/{id}); YouTube refuses to be framed via watch?v= links. */
     protected function embedUrl(): Attribute
     {
         return Attribute::get(function (): ?string {

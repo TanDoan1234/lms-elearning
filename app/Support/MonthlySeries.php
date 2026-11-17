@@ -6,10 +6,10 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
-/** Gom dữ liệu theo tháng (6 tháng gần nhất) để vẽ biểu đồ — xử lý bằng Collection nên chạy được trên MySQL lẫn SQLite. */
+/** Buckets values per month (last 6 months) for charts; aggregation runs on Collections so it works on both MySQL and SQLite. */
 class MonthlySeries
 {
-    /** @return array<string, string> key 'Y-m' => nhãn 'T11/2026' */
+    /** @return array<string, string> 'Y-m' key => display label such as 'T11/2026' */
     public static function months(int $count = 6): array
     {
         $start = now()->startOfMonth()->subMonths($count - 1);
@@ -27,8 +27,8 @@ class MonthlySeries
     }
 
     /**
-     * @param  Collection<int, array{0: mixed, 1: float|int}>  $rows  cặp [ngày, giá trị]
-     * @return array<string, float> nhãn tháng => tổng
+     * @param  Collection<int, array{0: mixed, 1: float|int}>  $rows  [date, value] pairs
+     * @return array<string, float> month label => total
      */
     public static function sum(Collection $rows, int $count = 6): array
     {
