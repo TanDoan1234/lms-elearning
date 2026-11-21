@@ -36,3 +36,9 @@
 
 /* Restrained editorial surfaces use borders instead of elevated shadows. */
 .shadow-card, .shadow-lg, .shadow-xl, .shadow-2xl { box-shadow: none !important; }
+
+/* Hide the browser built-in password reveal button; the app renders its own toggle. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
