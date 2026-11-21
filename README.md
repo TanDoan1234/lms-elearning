@@ -95,8 +95,3 @@ tests/Feature/E2E/          end-to-end integration tests
 | R13 Safety | escaped Blade `{{ }}`, query binding, validation, `.env.example` |
 | R14 OOP/service | `PaymentGatewayInterface`, `ExamGradingService`, `CertificateService` |
 | R15 Fetch/JSON | `resources/js/learn.js`, `LearnController::complete` |
-
-## Notes
-
-- The `slide/` folder (course slides) is git-ignored and not part of the repository.
-- The full project report (in English, for the lecturer) is at [docs/REPORT.md](docs/REPORT.md). Screenshots are in `docs/images/`.
