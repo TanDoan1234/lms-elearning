@@ -25,3 +25,8 @@ Thumbs.db
 
 # Tài liệu bài giảng (bản quyền giảng viên, dung lượng lớn)
 /slide
+
+# Agent working notes (kept locally, not published)
+/PLAN.md
+/docs/CONTRACT.md
+/docs/UI_GUIDE.md
