@@ -709,8 +709,9 @@ The actual results are updated at the last acceptance run with `php artisan test
 | TC-68 | `violation_after_deadline_grades_attempt_and_records_nothing` | reporting a violation after the deadline grades the attempt and records no violation | Pass |
 | TC-69 | `user_index_has_create_modal_that_reopens_with_errors` | the add-user modal reopens with errors and old input | Pass |
 | TC-70 | `password_inputs_render_visibility_toggle` | password fields render a show/hide toggle | Pass |
+| TC-71 | `data_science_category_uses_data_photo_not_database_photo` | a "Khoa học dữ liệu" course gets the data photo, not the database photo | Pass |
 
-Besides the 70 cases above, the remaining 21 tests are the default Laravel Breeze test suite (registration, login, forgot/reset password, email verification, personal profile) and 2 Laravel example tests; all of them pass.
+Besides the 71 cases above, the remaining 21 tests are the default Laravel Breeze test suite (registration, login, forgot/reset password, email verification, personal profile) and 2 Laravel example tests; all of them pass.
 
 ### 6.2 Acceptance Run Results
 
@@ -723,8 +724,8 @@ php artisan test
 Actual result at the last acceptance run (21 November 2026):
 
 ```text
-Tests: 91 passed (403 assertions)
-Duration: 2.58s
+Tests: 92 passed (405 assertions)
+Duration: 2.45s
 ```
 
 The timing cases are verified precisely by `OnlineExamTest::test_saving_after_expiry_is_rejected_and_attempt_is_finalized` and `OnlineExamTest::test_max_attempts_is_enforced`; therefore no renamed duplicate `ExamTimingTest` is created. Opening an expired attempt is also covered by the first case: the Livewire mount calls finalize and redirects to the result.
@@ -797,7 +798,7 @@ The images below were captured automatically with headless Chrome from the runni
 
 ### 8.1 Achievements
 
-The project delivers a multi-role LMS with 99 application routes. The student flow goes from registration, enrollment, payment, and study through exams to the certificate; instructors manage content/questions/exams/scores; the admin manages data and confirms bank transfers. The architecture follows MVC, Eloquent, migrations, Form Requests, middleware, policies, and services. Exams support an opening/closing time window and browser-level anti-cheat monitoring. The admin adds users from a modal on the user list, and every password field has a show/hide toggle. The test suite consists of 91 tests/403 assertions, all passing.
+The project delivers a multi-role LMS with 99 application routes. The student flow goes from registration, enrollment, payment, and study through exams to the certificate; instructors manage content/questions/exams/scores; the admin manages data and confirms bank transfers. The architecture follows MVC, Eloquent, migrations, Form Requests, middleware, policies, and services. Exams support an opening/closing time window and browser-level anti-cheat monitoring. The admin adds users from a modal on the user list, and every password field has a show/hide toggle. The test suite consists of 92 tests/405 assertions, all passing.
 
 ### 8.2 Limitations
 
