@@ -129,13 +129,13 @@ Phase 1 runs sequentially (foundation), phase 2 runs **4 workers in parallel** o
 | **W3 – Student: enrollment, payment, learning** | 2 | Home page, catalog (Livewire filter/search), course detail, free/paid enrollment + `MockPaymentGateway`, lesson page, progress via Fetch API JSON, "My courses" ("Khoá học của tôi") | routes/student.php, Controllers/Student, Services/Payment, EnrollmentService, ProgressService |
 | **W4 – Question bank, Exams, Excel** | 2 | Question + option CRUD, `AtLeastOneCorrectOption` Custom Rule, Excel import/export of questions + template file, exam CRUD (manual / random selection), Excel score export | Instructor/Question*, Instructor/Exam*, Imports, Exports |
 | **W5 – Online exams (Livewire) & PDF certificates** | 2 | Livewire `TakeExam` (timer, autosave, auto-submit, server-side rejection of late submissions, throttle), `ExamGradingService`, result/review page, `CertificateService` + dompdf + verification page | Livewire/Exam, ExamGradingService, CertificateService, views/exams, views/certificates |
-| **W6 – Testing & Report** | 3 | Feature tests (auth, 403 authorization, enrollment, submission & grading, certificate issuing, Excel import), run `migrate:fresh --seed` + end-to-end tests, fix integration bugs, write `README.md` (setup, demo accounts) and `docs/BAO_CAO.md` (project report outline) | tests/, README.md, docs/ |
+| **W6 – Testing & Report** | 3 | Feature tests (auth, 403 authorization, enrollment, submission & grading, certificate issuing, Excel import), run `migrate:fresh --seed` + end-to-end tests, fix integration bugs, write `README.md` (setup, demo accounts) and `docs/REPORT.md` (project report outline) | tests/, README.md, docs/ |
 
 Process: W1 finishes → I review and smoke-test → start W2–W5 in parallel → I merge/verify → W6 → handover.
 
 ---
 
-## 5. Project report outline (docs/BAO_CAO.md)
+## 5. Project report outline (docs/REPORT.md)
 
 1. Introduction: topic, objectives, scope
 2. Theoretical background: PHP OOP, Laravel 12 (MVC, Eloquent, Blade, Middleware, Auth), Livewire, DomPDF, Laravel Excel

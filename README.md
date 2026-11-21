@@ -99,4 +99,4 @@ tests/Feature/E2E/          end-to-end integration tests
 ## Notes
 
 - The `slide/` folder (course slides) is git-ignored and not part of the repository.
-- The full project report (in Vietnamese, for the lecturer) is at [docs/BAO_CAO.md](docs/BAO_CAO.md). Screenshots are in `docs/images/`.
+- The full project report (in English, for the lecturer) is at [docs/REPORT.md](docs/REPORT.md). Screenshots are in `docs/images/`.
