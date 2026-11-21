@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Exam;
 use App\Models\ExamAttempt;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +52,8 @@ class ExamGradingService
                 'correct_count' => $correctCount,
                 'total' => $locked->exam->questions->count(),
                 'passed' => $score >= (float) $locked->exam->pass_score,
-                'submitted_at' => now(),
+                // Lazily graded attempts are stamped with their deadline, not the time the sweep ran.
+                'submitted_at' => $locked->expires_at && now()->gt($locked->expires_at) ? $locked->expires_at : now(),
                 'status' => 'submitted',
             ]);
 
@@ -61,5 +63,26 @@ class ExamGradingService
         $this->certificates->issueIfEligible($graded->user, $graded->exam->course);
 
         return $graded;
+    }
+
+    /** Grades in-progress attempts whose deadline (plus grace) has passed. Returns the number finalized. */
+    public function finalizeExpired(?Exam $exam = null): int
+    {
+        $count = 0;
+        ExamAttempt::query()
+            ->where('status', 'in_progress')
+            ->where('expires_at', '<', now()->subSeconds(ExamAttempt::GRACE_SECONDS))
+            ->when($exam, fn ($query) => $query->where('exam_id', $exam->id))
+            ->lazyById()
+            ->each(function (ExamAttempt $attempt) use (&$count) {
+                try {
+                    $this->grade($attempt);
+                    $count++;
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
+
+        return $count;
     }
 }

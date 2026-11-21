@@ -16,7 +16,10 @@ class ExamController extends Controller
         $exam->load(['course.instructor'])->loadCount('questions');
         $attempts = $exam->attempts()->where('user_id', auth()->id())->latest('started_at')->get();
 
-        return view('exams.show', compact('exam', 'attempts'));
+        $windowState = $exam->windowState();
+        $inProgress = $attempts->where('status', 'in_progress')->isNotEmpty();
+
+        return view('exams.show', compact('exam', 'attempts', 'windowState', 'inProgress'));
     }
 
     public function start(Exam $exam): RedirectResponse
@@ -27,15 +30,23 @@ class ExamController extends Controller
 
         $unfinished = $exam->attempts()->where('user_id', auth()->id())->where('status', 'in_progress')->latest()->first();
         if ($unfinished) {
-            if ($unfinished->expires_at->addSeconds(5)->isPast()) {
+            if ($unfinished->isPastDeadline()) {
                 app(ExamGradingService::class)->grade($unfinished);
             } else {
                 return redirect()->route('attempts.take', $unfinished);
             }
         }
 
+        $windowState = $exam->windowState();
+        if ($windowState === Exam::WINDOW_UPCOMING) {
+            return back()->with('error', 'Bài thi chưa mở. Thời gian mở: '.$exam->starts_at->format('H:i d/m/Y').'.');
+        }
+        if ($windowState === Exam::WINDOW_CLOSED) {
+            return back()->with('error', 'Bài thi đã đóng, không thể bắt đầu lượt làm mới.');
+        }
+
         $used = $exam->attempts()->where('user_id', auth()->id())->count();
-        if ($used >= $exam->max_attempts) {
+        if (! $exam->hasUnlimitedAttempts() && $used >= $exam->max_attempts) {
             return back()->with('error', 'Bạn đã sử dụng hết số lần làm bài.');
         }
 
@@ -47,11 +58,12 @@ class ExamController extends Controller
             $questionIds = $questionIds->shuffle();
         }
 
+        $startedAt = now();
         $attempt = ExamAttempt::create([
             'exam_id' => $exam->id,
             'user_id' => auth()->id(),
-            'started_at' => now(),
-            'expires_at' => now()->addMinutes($exam->duration_minutes),
+            'started_at' => $startedAt,
+            'expires_at' => $exam->deadlineFor($startedAt),
             'question_order' => $questionIds->values()->all(),
         ]);
 

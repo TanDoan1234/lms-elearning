@@ -5,6 +5,7 @@ namespace App\Livewire\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Question;
 use App\Services\ExamGradingService;
+use App\Services\ExamProctoringService;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
@@ -75,6 +76,32 @@ class TakeExam extends Component
         $this->redirectRoute('attempts.result', $this->attempt, navigate: true);
     }
 
+    /** Records an anti-cheat violation reported by the browser. */
+    public function logViolation(string $type): array
+    {
+        abort_unless($this->attempt->user_id === auth()->id(), 403);
+
+        $this->attempt->refresh();
+        if ($this->attempt->status !== 'in_progress' || $this->attempt->isPastDeadline()) {
+            if ($this->attempt->status === 'in_progress') {
+                app(ExamGradingService::class)->grade($this->attempt);
+                $this->attempt->refresh();
+            }
+            $this->redirectRoute('attempts.result', $this->attempt, navigate: true);
+
+            return ['recorded' => false, 'submitted' => true];
+        }
+
+        $result = app(ExamProctoringService::class)->record($this->attempt, auth()->user(), $type);
+        $this->attempt->refresh();
+
+        if ($result['submitted']) {
+            $this->redirectRoute('attempts.result', $this->attempt, navigate: true);
+        }
+
+        return $result;
+    }
+
     public function checkExpiry(): void
     {
         $this->finalizeIfExpired();
@@ -116,7 +143,7 @@ class TakeExam extends Component
     private function assertWritable(): void
     {
         Gate::authorize('update', $this->attempt);
-        if ($this->attempt->expires_at->copy()->addSeconds(5)->isPast()) {
+        if ($this->attempt->isPastDeadline()) {
             app(ExamGradingService::class)->grade($this->attempt);
             abort(409, 'Thời gian làm bài đã hết.');
         }
@@ -124,7 +151,7 @@ class TakeExam extends Component
 
     private function finalizeIfExpired(): void
     {
-        if ($this->attempt->status === 'in_progress' && $this->attempt->expires_at->copy()->addSeconds(5)->isPast()) {
+        if ($this->attempt->status === 'in_progress' && $this->attempt->isPastDeadline()) {
             app(ExamGradingService::class)->grade($this->attempt);
             $this->redirectRoute('attempts.result', $this->attempt, navigate: true);
         }

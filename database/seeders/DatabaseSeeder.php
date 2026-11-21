@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\CertificateService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class DatabaseSeeder extends Seeder
@@ -78,10 +79,10 @@ class DatabaseSeeder extends Seeder
                 }
                 $questions->push($question);
             }
-            $exam = Exam::create(['course_id' => $course->id, 'title' => 'Bài thi cuối khóa', 'description' => 'Đánh giá kiến thức toàn khóa', 'duration_minutes' => 30, 'pass_score' => 60, 'max_attempts' => 3, 'shuffle_questions' => true, 'is_final' => true, 'status' => 'published']);
+            $exam = Exam::create(['course_id' => $course->id, 'title' => 'Bài thi cuối khóa', 'description' => 'Đánh giá kiến thức toàn khóa', 'duration_minutes' => 30, 'pass_score' => 60, 'max_attempts' => 3, 'shuffle_questions' => true, 'is_final' => true, 'status' => 'published', 'anti_cheat_enabled' => true, 'max_violations' => 3]);
             $exam->questions()->attach($questions->take(20)->mapWithKeys(fn ($q, $p) => [$q->id => ['points' => 0.5, 'position' => $p + 1]]));
             if ($i % 2 === 0) {
-                $quiz = Exam::create(['course_id' => $course->id, 'title' => 'Bài kiểm tra giữa khóa', 'duration_minutes' => 15, 'pass_score' => 60, 'max_attempts' => 2, 'shuffle_questions' => true, 'is_final' => false, 'status' => 'published']);
+                $quiz = Exam::create(['course_id' => $course->id, 'title' => 'Bài kiểm tra giữa khóa', 'duration_minutes' => 15, 'pass_score' => 60, 'max_attempts' => 2, 'shuffle_questions' => true, 'is_final' => false, 'status' => 'published', 'starts_at' => now()->subMonths(7)->startOfDay(), 'ends_at' => now()->addDays(30)->setTime(23, 59), 'anti_cheat_enabled' => true, 'max_violations' => 3]);
                 $quiz->questions()->attach($questions->skip(20)->mapWithKeys(fn ($q, $p) => [$q->id => ['points' => 1, 'position' => $p + 1]]));
             }
             $courseData[] = ['course' => $course, 'lessons' => $lessons, 'exam' => $exam, 'quiz' => $quiz ?? null];
@@ -92,11 +93,61 @@ class DatabaseSeeder extends Seeder
         $this->seedDemoStudent($demoStudent, collect($courseData));
         $this->seedActivity($students->slice(1)->values(), collect($courseData)->filter(fn ($d) => $d['course']->status === 'published')->values(), $demoStudent);
 
+        $this->seedScheduleDemoExams($demoStudent, collect($courseData));
+        $this->seedViolations($demoStudent);
+
         $this->command?->newLine();
         $this->command?->info('Tài khoản demo (mật khẩu: password):');
         $this->command?->line('  Admin: admin@lms.test');
         $this->command?->line('  Giảng viên: gv1@lms.test, gv2@lms.test, gv3@lms.test');
         $this->command?->line('  Học viên: hv1@lms.test ... hv60@lms.test (hv1 có sẵn luồng demo đầy đủ)');
+    }
+
+    /** Adds one not-yet-open and one already-closed quiz to a published course the demo student is not enrolled in. */
+    private function seedScheduleDemoExams(User $demoStudent, $courseData): void
+    {
+        $enrolledIds = $demoStudent->enrolledCourses()->pluck('courses.id');
+        $data = $courseData->first(fn ($d) => $d['course']->status === 'published' && ! $enrolledIds->contains($d['course']->id));
+        if (! $data) {
+            return;
+        }
+        $course = $data['course'];
+        $questions = $course->questions()->limit(10)->get();
+        $definitions = [
+            ['Kiểm tra chương 2', now()->addDays(3)->setTime(8, 0), now()->addDays(10)->setTime(17, 0)],
+            ['Kiểm tra nhanh tuần 1', now()->subDays(14)->setTime(8, 0), now()->subDays(7)->setTime(17, 0)],
+        ];
+        foreach ($definitions as [$title, $startsAt, $endsAt]) {
+            $exam = Exam::create(['course_id' => $course->id, 'title' => $title, 'duration_minutes' => 15, 'pass_score' => 60, 'max_attempts' => 2, 'shuffle_questions' => true, 'is_final' => false, 'status' => 'published', 'starts_at' => $startsAt, 'ends_at' => $endsAt, 'anti_cheat_enabled' => true, 'max_violations' => 3]);
+            $exam->questions()->attach($questions->mapWithKeys(fn ($q, $p) => [$q->id => ['points' => 1, 'position' => $p + 1]]));
+        }
+        $this->command?->line("  Đề có khung giờ (chưa mở / đã đóng) trong khóa: {$course->title}");
+    }
+
+    /** Adds violation records to some historical attempts; scores stay untouched. */
+    private function seedViolations(User $demoStudent): void
+    {
+        $types = ['tab_hidden', 'window_blur'];
+        $rows = [];
+        $attempts = ExamAttempt::query()->with('exam')->where('status', 'submitted')->where('user_id', '!=', $demoStudent->id)->whereNotNull('submitted_at')->orderBy('id')->get();
+        $flaggedBudget = 3;
+        foreach ($attempts as $attempt) {
+            $flag = $attempt->exam->is_final && $flaggedBudget > 0 && mt_rand(1, 100) <= 25;
+            if (! $flag && mt_rand(1, 100) > 15) {
+                continue;
+            }
+            $count = $flag ? 4 : mt_rand(1, 3);
+            $span = max(60, $attempt->started_at->diffInSeconds($attempt->submitted_at));
+            $offsets = collect(range(1, $count))->map(fn ($n) => (int) floor($span * $n / ($count + 1)))->all();
+            foreach ($offsets as $offset) {
+                $rows[] = ['exam_attempt_id' => $attempt->id, 'type' => $types[mt_rand(0, 1)], 'occurred_at' => $attempt->started_at->copy()->addSeconds(min($offset, $span - 1))];
+            }
+            $attempt->forceFill(['violation_count' => $count, 'flagged_at' => $flag ? $attempt->submitted_at : null])->saveQuietly();
+            $flaggedBudget -= $flag ? 1 : 0;
+        }
+        foreach (array_chunk($rows, 500) as $chunk) {
+            DB::table('exam_attempt_violations')->insert($chunk);
+        }
     }
 
     private function courseDefinitions(): array

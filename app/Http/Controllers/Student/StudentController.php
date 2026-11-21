@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Exam;
 use App\Services\ActivityHeatmapService;
 use App\Services\ProgressService;
 use Illuminate\Support\Facades\DB;
@@ -79,9 +80,9 @@ class StudentController extends Controller
                 }
                 $finalExam = $course->exams->firstWhere('is_final', true);
                 $finalPassed = $finalExam && $attempts->where('exam_id', $finalExam->id)->contains('passed', true);
-                $availableQuiz = $course->exams->where('is_final', false)->where('status', 'published')
+                $availableQuiz = $course->exams->where('is_final', false)->where('status', 'published')->filter(fn ($exam) => $exam->isOpenForAttempts())
                     ->first(fn ($exam) => ! $attempts->where('exam_id', $exam->id)->contains('passed', true));
-                if ($progressByCourse[$course->id] >= 100 && $finalExam && ! $finalPassed) {
+                if ($progressByCourse[$course->id] >= 100 && $finalExam && ! $finalPassed && $finalExam->windowState() !== Exam::WINDOW_CLOSED) {
                     $upcomingItems->push(['type' => 'exam', 'label' => 'Thi cuối khóa', 'title' => $finalExam->title, 'course' => $course, 'url' => route('exams.show', $finalExam)]);
                 } elseif ($availableQuiz) {
                     $upcomingItems->push(['type' => 'exam', 'label' => 'Bài kiểm tra', 'title' => $availableQuiz->title, 'course' => $course, 'url' => route('exams.show', $availableQuiz)]);

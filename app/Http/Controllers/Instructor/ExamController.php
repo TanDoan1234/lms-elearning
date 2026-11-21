@@ -89,6 +89,9 @@ class ExamController extends Controller
                 $course->exams()->where('is_final', true)->whereKeyNot($exam->id)->update(['is_final' => false]);
             }
             $exam->update($request->safe()->except(['selection_mode', 'questions', 'random']));
+            if ($exam->wasChanged(['ends_at', 'duration_minutes'])) {
+                $exam->syncInProgressDeadlines();
+            }
             $request->string('selection_mode')->value() === 'random' ? $this->builder->random($exam, $request->validated('random')) : $this->builder->manual($exam, $request->validated('questions', []));
         });
 

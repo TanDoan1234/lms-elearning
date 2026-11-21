@@ -14,7 +14,7 @@ class AttemptController extends Controller
     {
         Gate::authorize('update', $attempt);
 
-        if ($attempt->expires_at->addSeconds(5)->isPast()) {
+        if ($attempt->isPastDeadline()) {
             $grading->grade($attempt);
 
             return redirect()->route('attempts.result', $attempt)->with('error', 'Thời gian làm bài đã hết.');
@@ -26,7 +26,7 @@ class AttemptController extends Controller
     public function result(ExamAttempt $attempt, ExamGradingService $grading): View
     {
         Gate::authorize('view', $attempt);
-        if ($attempt->status === 'in_progress' && $attempt->expires_at->addSeconds(5)->isPast()) {
+        if ($attempt->status === 'in_progress' && $attempt->isPastDeadline()) {
             $attempt = $grading->grade($attempt);
         }
         abort_if($attempt->status === 'in_progress', 404);
