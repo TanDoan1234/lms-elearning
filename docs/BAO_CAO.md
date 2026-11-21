@@ -20,7 +20,7 @@ Học trực tuyến cần một luồng thống nhất giữa quản lý nội 
 
 ### 1.2 Mục tiêu, phạm vi và đối tượng
 
-Mục tiêu là xây dựng ứng dụng Laravel 12 có thể chạy thực tế với bốn tác nhân: khách, học viên, giảng viên và quản trị viên. Phạm vi gồm khóa học/chương/bài, ghi danh và thanh toán giả lập, tiến độ, ngân hàng câu hỏi, thi trắc nghiệm, bảng điểm và chứng chỉ PDF. Hệ thống không triển khai streaming video, cổng thanh toán thật hay giám sát chống gian lận.
+Mục tiêu là xây dựng ứng dụng Laravel 12 có thể chạy thực tế với bốn tác nhân: khách, học viên, giảng viên và quản trị viên. Phạm vi gồm khóa học/chương/bài, ghi danh và thanh toán giả lập, tiến độ, ngân hàng câu hỏi, thi trắc nghiệm, bảng điểm và chứng chỉ PDF. Bài thi có khung giờ mở/đóng và giám sát chống gian lận ở mức trình duyệt (phát hiện rời tab/cửa sổ, chặn sao chép – dán). Hệ thống không triển khai streaming video, cổng thanh toán thật hay nhận diện khuôn mặt/webcam.
 
 ## 2. Cơ sở lý thuyết
 
@@ -137,7 +137,7 @@ Policy kiểm tra quyền trên model. `ExamAttemptPolicy::update()` chỉ cho c
 
 ### 2.10 Livewire 3
 
-`TakeExam` giữ `currentIndex`, `selected`, `flagged`; action `selectOption` kiểm tra option thuộc câu hiện tại rồi cập nhật `attempt_answers`. Mọi lần ghi đều gọi `assertWritable()` để kiểm tra policy và `expires_at` phía server. Đồng hồ JavaScript chỉ phục vụ hiển thị, không phải nguồn tin cậy.
+`TakeExam` giữ `currentIndex`, `selected`, `flagged`; action `selectOption` kiểm tra option thuộc câu hiện tại rồi cập nhật `attempt_answers`. Mọi lần ghi đều gọi `assertWritable()` để kiểm tra policy và `expires_at` phía server. Đồng hồ JavaScript chỉ phục vụ hiển thị, không phải nguồn tin cậy. Với đề bật giám sát, action `logViolation(type)` nhận sự kiện từ các listener Alpine (`visibilitychange.document`, `blur.window`, `focus.window`; chỉ khai báo bằng directive để không rò listener khi `wire:navigate`) và giao cho `ExamProctoringService::record()`. Service khóa row lượt thi, bỏ qua sự kiện khi đề không bật giám sát, lượt đã nộp/quá hạn hoặc loại sự kiện lạ, chống đếm trùng bằng debounce 3 giây, ghi `exam_attempt_violations` và tăng `violation_count`. Khi số lần vượt `max_violations`, lượt được gắn cờ (`flagged_at`) rồi chấm bình thường trên các đáp án đã lưu (không bị 0 điểm) và học viên được chuyển sang trang kết quả. Trình duyệt cũng chặn sao chép, cắt, dán và menu chuột phải trên vùng câu hỏi.
 
 ### 2.11 DomPDF
 
@@ -288,11 +288,13 @@ flowchart TB
 
 ### 3.5 Đặc tả UC-S09–S11 — Làm bài thi
 
-**Tiền điều kiện:** học viên có enrollment active; exam published; exam có ít nhất một câu; số attempt đã dùng nhỏ hơn `max_attempts`.
+**Tiền điều kiện:** học viên có enrollment active; exam published; exam có ít nhất một câu; thời điểm hiện tại nằm trong khung giờ `starts_at`–`ends_at` (để trống nghĩa là không giới hạn phía đó); số attempt đã dùng nhỏ hơn `max_attempts` (`max_attempts = 0` nghĩa là không giới hạn số lần thi).
 
-**Luồng chính:** (1) POST start; (2) xử lý attempt cũ đang mở; (3) lấy question IDs và shuffle nếu cấu hình; (4) tạo attempt với `started_at`, `expires_at`, `question_order`; (5) tạo answer rỗng; (6) Livewire mount và authorize; (7) học viên chọn option; (8) server kiểm tra thời hạn và option; (9) nộp; (10) service khóa row, chấm từng câu, tính score phần trăm, passed và submitted_at; (11) thử cấp chứng chỉ.
+**Luồng chính:** (1) POST start; (2) xử lý attempt cũ đang mở; (3) lấy question IDs và shuffle nếu cấu hình; (4) tạo attempt với `started_at`, `expires_at = min(started_at + duration_minutes, ends_at)`, `question_order`; (5) tạo answer rỗng; (6) Livewire mount và authorize; (7) học viên chọn option; (8) server kiểm tra thời hạn và option; (9) nộp; (10) service khóa row, chấm từng câu, tính score phần trăm, passed và submitted_at; (11) thử cấp chứng chỉ.
 
-**Ngoại lệ:** đề 0 câu trả flash lỗi; hết số lần thi không tạo attempt; request lưu sau hạn bị 409 và lượt được chấm; người khác truy cập attempt bị 403.
+**Ngoại lệ:** đề 0 câu trả flash lỗi; hết số lần thi không tạo attempt; request lưu sau hạn bị 409 và lượt được chấm; người khác truy cập attempt bị 403; đề chưa mở hoặc đã đóng không cho bắt đầu lượt mới; lượt đang làm tự được chấm khi đến hạn đóng đề (kể cả khi học viên đã bỏ trang, nhờ lệnh `exams:finalize-expired` chạy mỗi phút và bước quét khi giảng viên mở trang kết quả/xuất bảng điểm).
+
+**Luồng thay thế (giám sát):** với đề bật chống gian lận, mỗi lần rời tab/cửa sổ được ghi nhận và hiển thị cảnh báo kèm số lần còn lại; vượt `max_violations` thì lượt bị nộp tự động, gắn cờ và vẫn được chấm bình thường. Giảng viên xem số lần, thời điểm vi phạm trên trang kết quả và trong tệp bảng điểm.
 
 **Hậu điều kiện:** attempt không còn `in_progress`, answers có `is_correct`, kết quả có thể xem lại.
 
@@ -330,6 +332,8 @@ flowchart TB
 | NFR-08 | Khả năng bảo trì | route module, Form Request, Policy, Service |
 | NFR-09 | Tương thích dữ liệu | import/export XLSX/CSV, PDF chuẩn tải xuống |
 | NFR-10 | Tái lập demo | `migrate:fresh --seed`, tài khoản cố định |
+| NFR-11 | Khung giờ thi | `starts_at`/`ends_at`; `expires_at` của lượt thi bị chặn bởi giờ đóng đề; lệnh `exams:finalize-expired` |
+| NFR-12 | Giám sát chống gian lận | `exam_attempt_violations`, debounce 3 giây, tự nộp và gắn cờ khi vượt giới hạn |
 
 ## 4. Thiết kế
 
@@ -358,6 +362,7 @@ erDiagram
   EXAMS ||--o{ EXAM_QUESTION : includes
   QUESTIONS ||--o{ EXAM_QUESTION : used_by
   EXAMS ||--o{ EXAM_ATTEMPTS : receives
+  EXAM_ATTEMPTS ||--o{ EXAM_ATTEMPT_VIOLATIONS : logs
   USERS ||--o{ EXAM_ATTEMPTS : takes
   EXAM_ATTEMPTS ||--o{ ATTEMPT_ANSWERS : records
   QUESTIONS ||--o{ ATTEMPT_ANSWERS : answered
@@ -377,6 +382,7 @@ erDiagram
 | `questions`, `options` | ngân hàng câu hỏi và phương án đúng/sai |
 | `exams`, `exam_question` | cấu hình đề và câu hỏi/điểm/thứ tự |
 | `exam_attempts`, `attempt_answers` | thời gian, điểm, trạng thái và đáp án từng lượt |
+| `exam_attempt_violations` | nhật ký vi phạm (rời tab/cửa sổ) của từng lượt thi |
 | `certificates` | mã duy nhất, ngày cấp và đường dẫn PDF |
 
 ### 4.3.1 Từ điển dữ liệu theo migration
@@ -482,6 +488,9 @@ erDiagram
 | `shuffle_questions` | boolean | trộn thứ tự |
 | `is_final` | boolean | đề cuối khóa |
 | `status` | enum | draft/published |
+| `starts_at`, `ends_at` | datetime nullable | khung giờ mở/đóng đề; null là không giới hạn |
+| `anti_cheat_enabled` | boolean | bật giám sát chống gian lận, mặc định false |
+| `max_violations` | unsigned tinyint | số lần rời trang cho phép, mặc định 3 |
 | `exam_question.exam_id` | FK exams | unique với question_id |
 | `exam_question.question_id` | FK questions | câu thuộc đề |
 | `exam_question.points` | decimal(5,2) | trọng số |
@@ -500,6 +509,11 @@ erDiagram
 | `passed` | boolean | đạt ngưỡng |
 | `status` | enum | in_progress/submitted/expired |
 | `question_order` | JSON nullable | migration bổ sung, thứ tự ổn định |
+| `violation_count` | unsigned smallint | số lần vi phạm đã ghi nhận, mặc định 0 |
+| `flagged_at` | timestamp nullable | lúc bị nộp tự động do vượt giới hạn vi phạm |
+| `exam_attempt_violations.exam_attempt_id` | FK exam_attempts | cascade delete |
+| `exam_attempt_violations.type` | varchar(30) | `tab_hidden` hoặc `window_blur` |
+| `exam_attempt_violations.occurred_at` | timestamp | thời điểm ghi nhận, index cùng exam_attempt_id |
 | `attempt_answers.exam_attempt_id` | FK attempts | unique với question_id |
 | `attempt_answers.question_id` | FK questions | câu được trả lời |
 | `selected_option_ids` | JSON nullable | mảng ID lựa chọn |
@@ -612,7 +626,9 @@ Cấu trúc thực tế được trình bày trong `README.md`. Các điểm cà
 | Auth/role | đăng ký, đăng nhập, redirect dashboard | đúng vai trò |
 | Learning | draft không xuất hiện; free active; private bị chặn | đúng HTTP/trạng thái DB |
 | Payment | thẻ 4242 thành công; 4000…0002 giữ pending; admin xác nhận | enrollment đúng |
-| Exam | max attempts, đề rỗng, hết giờ, đáp án đúng | server cưỡng chế và chấm đúng |
+| Exam | max attempts (kể cả 0 = không giới hạn), đề rỗng, hết giờ, đáp án đúng | server cưỡng chế và chấm đúng |
+| Khung giờ thi | chưa mở, đã đóng, `expires_at` bị chặn bởi giờ đóng, tự nộp khi đóng đề | không tạo lượt ngoài khung giờ, lượt dở được chấm |
+| Chống gian lận | ghi vi phạm, debounce, vượt giới hạn, đề tắt giám sát, người khác ghi | tự nộp + gắn cờ, chấm bình thường |
 | Certificate | đủ tiến độ + đạt final; verify công khai | PDF tồn tại, mã hợp lệ |
 | Excel | template/import/export | XLSX hợp lệ, dữ liệu khứ hồi |
 | Authorization | guest/student/giảng viên khác/admin | redirect/403 đúng |
@@ -666,7 +682,35 @@ Kết quả chạy thật được cập nhật ở lần nghiệm thu cuối b�
 | TC-41 | `progress_service_returns_first_uncompleted_lesson` | xác định bài học tiếp theo | Pass |
 | TC-42 | `it_builds_84_days_and_combines_activity_sources` | heatmap 12 tuần gộp bài học và lượt thi | Pass |
 
-Ngoài 42 ca trên, 21 test còn lại là bộ test mặc định của Laravel Breeze (đăng ký, đăng nhập, quên/đặt lại mật khẩu, xác minh email, hồ sơ cá nhân) và 2 test mẫu của Laravel; tất cả đều pass.
+| TC-43 | `student_cannot_start_before_window_opens` | không bắt đầu khi đề chưa mở | Pass |
+| TC-44 | `student_cannot_start_after_window_closes` | không bắt đầu khi đề đã đóng | Pass |
+| TC-45 | `start_inside_window_caps_deadline_at_closing_time` | `expires_at` bị chặn bởi giờ đóng đề | Pass |
+| TC-46 | `in_progress_attempt_is_auto_submitted_when_exam_closes` | lưu đáp án sau giờ đóng bị 409 và lượt được chấm | Pass |
+| TC-47 | `opening_take_page_after_close_grades_and_redirects_to_result` | mở trang làm bài sau giờ đóng thì chấm và chuyển sang kết quả | Pass |
+| TC-48 | `show_page_displays_window_state` | trang đề hiển thị Chưa mở/Đang mở/Đã đóng | Pass |
+| TC-49 | `closing_time_must_be_after_opening_time` | validate giờ đóng sau giờ mở | Pass |
+| TC-50 | `instructor_can_save_window_and_anti_cheat_settings` | giảng viên lưu khung giờ và cấu hình giám sát | Pass |
+| TC-51 | `shortening_closing_time_clamps_in_progress_attempts` | rút ngắn giờ đóng cập nhật lượt đang làm, không hồi sinh lượt đã hết hạn | Pass |
+| TC-52 | `results_page_finalizes_abandoned_expired_attempts` | trang kết quả chấm các lượt bị bỏ dở | Pass |
+| TC-53 | `zero_max_attempts_means_unlimited` | `max_attempts = 0` không giới hạn số lần | Pass |
+| TC-54 | `limited_max_attempts_still_blocks` | giới hạn lượt vẫn được cưỡng chế | Pass |
+| TC-55 | `violation_is_recorded_and_state_returned` | ghi vi phạm và trả về số lần còn lại | Pass |
+| TC-56 | `burst_of_events_counts_once_and_again_after_debounce` | debounce 3 giây | Pass |
+| TC-57 | `exceeding_limit_auto_submits_flags_and_redirects` | vượt giới hạn thì nộp tự động, gắn cờ, chấm bình thường | Pass |
+| TC-58 | `zero_tolerance_submits_on_first_violation` | `max_violations = 0` | Pass |
+| TC-59 | `violations_are_ignored_when_anti_cheat_disabled` | đề tắt giám sát không ghi nhận | Pass |
+| TC-60 | `submitted_attempts_and_unknown_types_are_ignored` | bỏ qua lượt đã nộp và loại sự kiện lạ | Pass |
+| TC-61 | `other_user_cannot_record_violations` | người khác không ghi vi phạm vào lượt của bạn | Pass |
+| TC-62 | `results_page_and_export_show_violations` | trang kết quả và bảng điểm hiển thị vi phạm | Pass |
+| TC-63 | `take_page_shows_proctoring_banner_only_when_enabled` | banner giám sát chỉ hiện khi bật | Pass |
+
+| TC-64 | `ends_at_without_starts_at_passes_validation` | chỉ đặt giờ đóng (không đặt giờ mở) vẫn hợp lệ | Pass |
+| TC-65 | `finalize_expired_grades_all_expired_attempts_at_their_deadline` | quét chấm mọi lượt hết hạn, `submitted_at` = hạn nộp | Pass |
+| TC-66 | `finalize_expired_continues_after_one_attempt_fails` | một lượt lỗi khi chấm không làm dừng cả đợt quét | Pass |
+| TC-67 | `extending_closing_time_extends_in_progress_attempt` | kéo dài giờ đóng cập nhật `expires_at` lượt đang làm | Pass |
+| TC-68 | `violation_after_deadline_grades_attempt_and_records_nothing` | báo vi phạm sau hạn thì chấm lượt, không ghi vi phạm | Pass |
+
+Ngoài 68 ca trên, 21 test còn lại là bộ test mặc định của Laravel Breeze (đăng ký, đăng nhập, quên/đặt lại mật khẩu, xác minh email, hồ sơ cá nhân) và 2 test mẫu của Laravel; tất cả đều pass.
 
 ### 6.2 Kết quả chạy nghiệm thu
 
@@ -676,11 +720,11 @@ Lệnh thực hiện:
 php artisan test
 ```
 
-Kết quả thực tế ở lần nghiệm thu cuối (17/11/2026):
+Kết quả thực tế ở lần nghiệm thu cuối (20/11/2026):
 
 ```text
-Tests: 63 passed (276 assertions)
-Duration: 2.14s
+Tests: 89 passed (383 assertions)
+Duration: 2.49s
 ```
 
 Các ca timing được kiểm chứng chính xác bởi `OnlineExamTest::test_saving_after_expiry_is_rejected_and_attempt_is_finalized` và `OnlineExamTest::test_max_attempts_is_enforced`; vì vậy không tạo bản sao `ExamTimingTest` chỉ đổi tên. Việc mở attempt hết hạn cũng nằm trong ca đầu: Livewire mount gọi finalize và redirect đến result.
@@ -699,7 +743,15 @@ Các ca timing được kiểm chứng chính xác bởi `OnlineExamTest::test_s
 
 ![Màn hình làm bài thi](images/exam-taking.png)
 
-*Đồng hồ, điều hướng câu, trạng thái đã trả lời và nút nộp.*
+*Đồng hồ, điều hướng câu, trạng thái đã trả lời, nút nộp và dải "Giám sát thi" hiển thị số lần rời trang đã ghi nhận.*
+
+![Cảnh báo vi phạm quy chế thi](images/exam-anticheat-warning.png)
+
+*Khi học viên rời khỏi cửa sổ/tab làm bài, server ghi nhận vi phạm và trang hiện cảnh báo kèm số lần còn lại trước khi bài bị nộp tự động.*
+
+![Đề thi chưa mở](images/exam-schedule.png)
+
+*Trang giới thiệu đề thi ngoài khung giờ: trạng thái "Chưa mở – mở lúc …", nút làm bài bị khóa và quy định giám sát.*
 
 ![Dashboard giảng viên](images/instructor-dashboard.png)
 
@@ -731,11 +783,11 @@ Các ca timing được kiểm chứng chính xác bởi `OnlineExamTest::test_s
 
 ![Trình tạo đề thi](images/exam-builder.png)
 
-*Thiết lập thời lượng, điểm đạt, số lượt và chọn câu hỏi.*
+*Thiết lập lịch mở/đóng đề, giám sát chống gian lận, thời lượng, điểm đạt, số lượt và chọn câu hỏi.*
 
 ![Kết quả và bảng điểm](images/exam-results.png)
 
-*Điểm trung bình/cao nhất/thấp nhất, tỷ lệ đạt và nút export.*
+*Điểm trung bình/cao nhất/thấp nhất, tỷ lệ đạt, số lượt bị gắn cờ, cột vi phạm (bấm để xem thời điểm) và nút export.*
 
 ![Trang xác thực chứng chỉ](images/certificate-verify.png)
 
@@ -745,13 +797,13 @@ Các ca timing được kiểm chứng chính xác bởi `OnlineExamTest::test_s
 
 ### 8.1 Kết quả đạt được
 
-Đồ án hoàn thiện một LMS đa vai trò với 99 route ứng dụng. Luồng học viên đi từ đăng ký, ghi danh, thanh toán, học, thi đến chứng chỉ; giảng viên quản lý nội dung/câu hỏi/đề/điểm; admin quản lý dữ liệu và xác nhận chuyển khoản. Kiến trúc tuân theo MVC, Eloquent, migration, Form Request, middleware, policy và service. Bộ test gồm 63 test/276 assertion đều pass.
+Đồ án hoàn thiện một LMS đa vai trò với 99 route ứng dụng. Luồng học viên đi từ đăng ký, ghi danh, thanh toán, học, thi đến chứng chỉ; giảng viên quản lý nội dung/câu hỏi/đề/điểm; admin quản lý dữ liệu và xác nhận chuyển khoản. Kiến trúc tuân theo MVC, Eloquent, migration, Form Request, middleware, policy và service. Đề thi hỗ trợ khung giờ mở/đóng và giám sát chống gian lận ở mức trình duyệt. Bộ test gồm 89 test/383 assertion đều pass.
 
 ### 8.2 Hạn chế
 
 - Thanh toán chỉ là mô phỏng, chưa xác thực webhook từ ngân hàng.
 - Video dùng file/URL, chưa có transcoding adaptive streaming.
-- Thi trực tuyến chưa có proctoring, phát hiện đổi tab hay nhận diện khuôn mặt.
+- Chống gian lận chỉ ở mức trình duyệt (phát hiện rời tab/cửa sổ, chặn sao chép – dán); không ngăn được thiết bị thứ hai, chụp màn hình hay nhận diện khuôn mặt; không yêu cầu chế độ toàn màn hình.
 - Chưa có email/notification queue cho xác nhận đơn và cấp chứng chỉ.
 - Dashboard mới tập trung thống kê nghiệp vụ cơ bản, chưa có learning analytics sâu.
 
@@ -762,7 +814,7 @@ Các ca timing được kiểm chứng chính xác bởi `OnlineExamTest::test_s
 - Thêm queue, email, notification trong ứng dụng.
 - Thêm rubric, bài tập tự luận và chấm thủ công.
 - Thêm ngân hàng đề theo blueprint và random có seed kiểm toán.
-- Thêm giới hạn thiết bị, nhật ký sự kiện thi và cảnh báo gian lận.
+- Thêm giới hạn thiết bị, chế độ toàn màn hình và giám sát webcam.
 - Xây API token cho ứng dụng mobile.
 - Bổ sung báo cáo cohort, thời gian học và phân tích câu hỏi.
 

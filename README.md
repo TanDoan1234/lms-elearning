@@ -6,7 +6,8 @@ An online learning management and quiz system built for the "Lập trình mã ng
 
 - **Guest:** browse published courses, preview lessons, and verify certificates.
 - **Student:** register, pay, learn with the Fetch API (progress tracking), take Livewire exams, review results, and download certificates.
-- **Instructor:** CRUD for course content, question bank, Excel import/export, exam builder, view/export scores.
+- **Instructor:** CRUD for course content, question bank, Excel import/export, exam builder (optional open/close time window and browser-level anti-cheat settings), view/export scores including recorded violations.
+- **Exam window and anti-cheat:** an exam can have `starts_at`/`ends_at`; attempts are capped at the closing time and auto-submitted when it passes. With anti-cheat enabled, tab/window switches are logged (debounced), copy/paste/context menu are blocked on the question area, and exceeding `max_violations` auto-submits and flags the attempt, which is still graded normally on the saved answers. This is a deterrence layer only: it cannot stop a second device, screenshots, or face/webcam checks. `max_attempts = 0` means unlimited attempts.
 - **Admin:** manage users and categories, approve courses, confirm bank transfers, and view dashboards.
 
 ## Tech stack and requirements
@@ -33,6 +34,8 @@ npm run build
 php artisan serve
 ```
 
+To auto-submit abandoned attempts after an exam closes, run the scheduler in another terminal (`php artisan schedule:work`, or a `schedule:run` cron entry). It runs `php artisan exams:finalize-expired` every minute; the instructor results page and score export also sweep expired attempts on demand.
+
 The app runs at `http://127.0.0.1:8000` by default. Set `APP_DEBUG=false` for a production-style demo.
 
 ## Demo accounts
@@ -56,7 +59,7 @@ php artisan test
 php artisan test tests/Feature/E2E
 ```
 
-The suite currently has 63 passing tests. Tests use SQLite `:memory:` as configured in `phpunit.xml`. To rebuild the demo data, run `php artisan migrate:fresh --seed` (this deletes existing data).
+The suite currently has 89 passing tests (383 assertions). Tests use SQLite `:memory:` as configured in `phpunit.xml`. To rebuild the demo data, run `php artisan migrate:fresh --seed` (this deletes existing data).
 
 ## Directory structure
 

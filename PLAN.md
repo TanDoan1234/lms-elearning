@@ -46,8 +46,8 @@ Dev machine: PHP 8.5, Composer 2.10, Node 22, MySQL 9.7 (Homebrew) → enough to
 | M4 | Enrollment & Payment | Free → active immediately; Paid → order + **mock payment gateway** (interface `PaymentGateway` + `MockPaymentGateway`) / admin confirms bank transfer |
 | M5 | Learning & Progress | Learning page with lesson list, mark complete via **Fetch API (JSON)** after finishing a video, progress percentage bar |
 | M6 | Question bank | CRUD for single-answer / multiple-answer questions, difficulty; **Excel import/export** (maatwebsite/excel) + template file |
-| M7 | Exams | Pick questions from the bank or randomly by difficulty, time limit, pass score, max attempts, question shuffling |
-| M8 | Taking exams (Livewire) | Countdown timer, autosave answers, switch questions without reload, **auto-submit on timeout**, server-side deadline check, **automatic grading** |
+| M7 | Exams | Pick questions from the bank or randomly by difficulty, time limit, pass score, max attempts (0 = unlimited), question shuffling, optional open/close time window, anti-cheat settings |
+| M8 | Taking exams (Livewire) | Countdown timer, autosave answers, switch questions without reload, **auto-submit on timeout**, server-side deadline check (capped at the exam closing time), **automatic grading**, browser-level anti-cheat (tab/window switch logging, copy/paste blocking, auto-submit and flag after too many violations; flagged attempts are graded normally) |
 | M9 | Results & Score reports | Attempt history, answer review, **Excel score export** per exam |
 | M10 | PDF certificates | After 100% of lessons + passing the final exam → generate a certificate (**barryvdh/laravel-dompdf**), unique certificate code, public verification page `/certificates/verify/{code}` |
 | M11 | Dashboard | Role-based statistics (courses, students, revenue, pass rate) |
@@ -71,9 +71,11 @@ lesson_user  (progress — N-N pivot User–Lesson)(user_id, lesson_id, complete
 questions(id, course_id, created_by→users, content, type[single|multiple], difficulty[easy|medium|hard], explanation)
 options(id, question_id cascade, content, is_correct)
 exams(id, course_id, title, description, duration_minutes, pass_score, max_attempts,
-      shuffle_questions, is_final, status, timestamps)
+      shuffle_questions, is_final, status, starts_at?, ends_at?, anti_cheat_enabled, max_violations, timestamps)
 exam_question (pivot N-N Exam–Question)(exam_id, question_id, points, position)
-exam_attempts(id, exam_id, user_id, started_at, expires_at, submitted_at, score, correct_count, total, passed, status)
+exam_attempts(id, exam_id, user_id, started_at, expires_at, submitted_at, score, correct_count, total, passed, status,
+               violation_count, flagged_at?)
+exam_attempt_violations(id, exam_attempt_id→exam_attempts cascade, type[tab_hidden|window_blur], occurred_at)
 attempt_answers(id, exam_attempt_id, question_id, selected_option_ids json, is_correct)
 certificates(id, user_id, course_id, code unique, issued_at, file_path)   -- unique(user_id, course_id)
 ```
@@ -149,4 +151,6 @@ Process: W1 finishes → I review and smoke-test → start W2–W5 in parallel �
 - **PHP 8.5 is new**: some packages may emit deprecation warnings → pin compatible versions on install; if that fails, use `--ignore-platform-req` or the latest dev release.
 - **Breeze on Laravel 12**: the slides use Breeze, and Laravel 12 can still install `laravel/breeze` 2.x → follow the slides.
 - **Large videos**: upload limit (`max:51200` KB) + YouTube link support for a lightweight demo.
-- **Exam timer cheating**: the deadline is stored in `exam_attempts.expires_at`, the server rejects answers after it, and the client clock is never trusted.
+- **Exam timer cheating**: the deadline is stored in `exam_attempts.expires_at` (capped at the exam closing time), the server rejects answers after it, and the client clock is never trusted.
+- **Client-side anti-cheat is deterrence only**: visibility/blur events can be suppressed by a determined user and cannot detect a second device, screenshots, or faces. Mitigations: server-side debounce and limit, a tolerant default (3 violations), flagged attempts graded normally and surfaced to the instructor for review.
+- **Abandoned attempts after closing**: grading is lazy, so a scheduled `exams:finalize-expired` command (plus a sweep on the results page/export) grades them; this needs `php artisan schedule:work` or a cron entry.
